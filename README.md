@@ -1,78 +1,45 @@
-# 🚗 Gestor de Locadora Brasil (Intelligent Upsell System)
+# 🚗 Gestor de Locadora BR (Intelligent Fleet Manager)
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Framework-Streamlit-red)
-![Data](https://img.shields.io/badge/Data-Google%20Sheets%20%2F%20Pandas-green)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-success)
+![Focus](https://img.shields.io/badge/Focus-Revenue%20Optimization-orange)
 
-> **Uma solução de automação comercial que integra dados em nuvem (Google Sheets) com lógica de vendas algorítmica para maximizar o ticket médio de locadoras de veículos.**
+> **Sistema de Inteligência Comercial para Locadoras de Veículos. Integração em Nuvem (Google Sheets), precificação dinâmica e algoritmos de Upsell Automático.**
 
 ---
 
-## 🎯 O Problema de Negócio
-Locadoras de veículos perdem receita diariamente devido a dois fatores:
-1.  **Falha de Comunicação:** Demora para atualizar preços e disponibilidade entre a gestão de frota (Planilha) e o time de vendas.
-2.  **Oportunidades Perdidas:** Atendentes que não aplicam técnicas de *Upsell* (oferta de categoria superior) de forma consistente em períodos de alta demanda.
+## 🎯 Contexto de Negócio
+No setor de locação de veículos, a agilidade na resposta e a precisão no cálculo de taxas complexas são vitais para a conversão. Este projeto resolve três dores operacionais comuns:
+1.  **Perda de Receita:** Falha humana no cálculo de taxas de retorno (devolução em outra loja) e adicionais.
+2.  **Estoque Ocioso:** Dificuldade em converter reservas de carros "Isca" (esgotados) para categorias superiores.
+3.  **Descentralização:** Dados de frota desconectados da ferramenta de orçamentos.
 
 ## 💡 A Solução Técnica
-Desenvolvi uma aplicação web em **Python (Streamlit)** que atua como uma interface centralizada e inteligente:
+Desenvolvi uma aplicação **Full-Stack em Python (Streamlit)** que atua como um motor de decisão para o time de vendas:
 
-* **Integração Cloud em Tempo Real:** O sistema consome dados diretamente de um **Google Sheets** via API pública (CSV), eliminando versões desatualizadas de arquivos locais.
-* **Algoritmo de "Isca" & Upsell:** O código detecta automaticamente quando um cliente solicita um "Carro Isca" (preço promocional/esgotado) e gera instantaneamente um script de vendas persuasivo focado em converter para categorias superiores (SUV/Turbo).
-* **Inteligência Sazonal:** A lógica do sistema ajusta os argumentos de venda baseando-se na data da reserva (ex: *Reveillon* foca em escassez; *Férias* foca em conforto).
-
----
-
-## 📸 Hero Shot (Interface do Sistema)
-
-![Screenshot do Sistema](https://seulinkdaimagem.com/print.png)
-
-*O sistema detectando um cenário de Alta Temporada e sugerindo upgrades automaticamente.*
+* **Cloud Data Integration:** Consumo de dados em tempo real via API pública do Google Sheets (CSV), garantindo que preços e disponibilidade estejam sempre atualizados.
+* **Logistics Engine (One-Way Fee):** Algoritmo que detecta automaticamente divergência entre Local de Retirada e Devolução, aplicando a taxa de retorno (Logística Reversa) sem intervenção manual.
+* **Upsell Algorithm:** Detecta solicitações de carros indisponíveis ("Isca") e gera scripts de persuasão baseados em gatilhos mentais (Escassez/Sazonalidade), calculando automaticamente o upgrade.
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 📸 Interface do Sistema (Hero Shot)
 
-* **Linguagem:** Python 3.12
-* **Front-end:** Streamlit (para renderização rápida de dashboards).
-* **Manipulação de Dados:** Pandas (ETL e limpeza de dados).
-* **Conectividade:** Integração via URL CSV do Google Sheets.
-* **Arquitetura:** Lógica separada em camadas (Data fetching, Business Logic, UI).
+![Dashboard Preview](https://via.placeholder.com/800x400?text=Inserir+Print+do+Sistema+Aqui)
+
+*O sistema calculando automaticamente: Diárias Sazonais + Taxa de Retorno + Condutor Adicional.*
 
 ---
 
-## 🚀 Como Executar Localmente
+## 🛠️ Funcionalidades Críticas (Business Logic)
 
-1.  **Clone o repositório:**
-    ```bash
-    git clone [https://github.com/SEU-USUARIO/gestor-locadora-brasil.git](https://github.com/SEU-USUARIO/gestor-locadora-brasil.git)
-    cd gestor-locadora-brasil
-    ```
+### 1. Precificação Dinâmica & Sazonalidade
+O código identifica datas de "Alta Temporada" (Férias, Feriados, Fim de Ano) e ajusta o valor da diária automaticamente, maximizando a margem de lucro.
 
-2.  **Instale as dependências:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3.  **Execute a aplicação:**
-    ```bash
-    streamlit run app_brasil.py
-    ```
-
----
-
-## 🧠 Destaques de Código (Programação Defensiva)
-
-O sistema foi construído com foco em robustez para evitar falhas em produção:
-
-* **Tratamento de Erros de Conexão:** O sistema não "crasha" se a internet cair; ele exibe mensagens de erro amigáveis ao usuário.
-* **Sanitização de Dados:** O Pandas remove linhas vazias ou corrompidas vindas do Google Sheets antes do processamento.
-* **Cache Inteligente (`@st.cache_data`):** Implementação de cache para reduzir o consumo de dados e latência, melhorando a experiência do usuário.
-
----
-
-## 👤 Sobre o Autor
-
-Desenvolvedor com background em Administração e Auditoria, focado em criar ferramentas que transformam processos manuais em automação estratégica.
-
-linkedin.com/in/eloirborges/
+### 2. Motor de Logística (One-Way Fee)
+```python
+# Exemplo da Lógica aplicada no Backend
+if local_retirada != local_devolucao:
+    taxa_retorno = 150.00
+    aviso = "Inclui Taxa de Logística Reversa"
