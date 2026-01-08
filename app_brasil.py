@@ -7,7 +7,7 @@ from datetime import datetime, time, timedelta
 # ==============================================================================
 st.set_page_config(page_title="Gestor de Locadora BR", page_icon="🇧🇷", layout="wide")
 
-# SEU LINK JÁ ESTÁ AQUI 👇
+# SEU LINK (Já verificado)
 SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR2Fjc9qA470SDT12L-_nNlryhKLXHZWXSYPzg-ycg-DGkt_O7suDDtUF3rQEE-pg/pub?gid=858361345&single=true&output=csv"
 
 LOCAIS = {
@@ -17,39 +17,45 @@ LOCAIS = {
 }
 
 # ==============================================================================
-# 2. MOTOR DE DADOS (CONEXÃO EM TEMPO REAL)
+# 2. MOTOR DE DADOS & LIMPEZA 🧼
 # ==============================================================================
-# ttl=0 significa ZERO Cache. Atualiza na hora (F5).
 @st.cache_data(ttl=0)
 def load_data():
     try:
-        # O Pandas lê direto do seu link
         df = pd.read_csv(SHEET_URL)
-        
-        # Limpeza de segurança (remove linhas vazias da planilha)
         df = df.dropna(how='all')
-        
-        # Verifica se as colunas essenciais existem
-        colunas_obrigatorias = ['Carro', 'Preço Baixa', 'Disponibilidade']
-        if not all(col in df.columns for col in colunas_obrigatorias):
-            st.error("⚠️ Erro: As colunas da planilha não conferem. Verifique o cabeçalho.")
-            return pd.DataFrame()
-            
         return df
     except Exception as e:
-        st.error(f"❌ Erro de Conexão com Google Sheets: {e}")
+        st.error(f"❌ Erro de Conexão: {e}")
         return pd.DataFrame()
 
 df = load_data()
 
+# --- NOVA FUNÇÃO DE LIMPEZA DE PREÇO ---
+def limpar_preco(valor):
+    """Transforma 'R$ 120,00' (texto) em 120.00 (número)"""
+    try:
+        if isinstance(valor, (int, float)):
+            return float(valor)
+        
+        # Remove R$, espaços e troca vírgula por ponto
+        valor_limpo = str(valor).replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.')
+        return float(valor_limpo)
+    except:
+        return 0.0
+
 def get_car_details(row):
+    # Aplica a limpeza nos preços AGORA
+    p_baixa = limpar_preco(row.get('Preço Baixa', 0))
+    p_alta = limpar_preco(row.get('Preço Alta', 0))
+    
     return {
         "nome": row['Carro'],
         "grupo": row.get('Grupo', 'N/A'),
         "motor": row.get('Motor', '1.0'),
         "cambio": row.get('Câmbio', 'Manual'),
-        "p_baixa": row.get('Preço Baixa', 0),
-        "p_alta": row.get('Preço Alta', 0),
+        "p_baixa": p_baixa,
+        "p_alta": p_alta,
         "status": str(row.get('Disponibilidade', ''))
     }
 
@@ -111,19 +117,17 @@ if not df.empty:
         
         # --- DETECTOR DE ISCA ---
         e_isca = False
-        # Converte para número caso venha como texto do Sheets
-        preco_atual = float(str(carro['p_baixa']).replace('R$', '').replace(',', '.'))
-        
-        if preco_atual <= 100 or "Isca" in carro['status']:
+        if carro['p_baixa'] <= 100 or "Isca" in carro['status']:
             e_isca = True
             st.error(f"🎣 CARRO ISCA DETECTADO: {carro['nome']}")
-            st.info("Script de Upsell Ativado Automaticamente.")
+            st.info("Upsell Automático Ativado.")
         
         with st.container(border=True):
             c1, c2 = st.columns(2)
             c1.metric("Grupo", carro['grupo'])
             c2.metric("Motor", carro['motor'])
-            st.text(f"Câmbio: {carro['cambio']}")
+            # Agora formatamos o preço garantindo que é número
+            st.metric("Diária Base", f"R$ {carro['p_baixa']:.2f}")
             
             if "ESGOTADO" in carro['status']:
                 st.warning(f"Status: {carro['status']}")
@@ -142,17 +146,40 @@ if not df.empty:
             taxa_entrega = LOCAIS[local_ret]
             dias = max((d_fim - d_inicio).days, 1)
             
+            # --- CÁLCULO FINANCEIRO REAL ---
+            is_alta = d_inicio.month in [1, 2, 7, 12]
+            p_dia = carro['p_alta'] if is_alta else carro['p_baixa']
+            total = (dias * p_dia) + taxa_entrega
+
             if e_isca:
                 dados_script = get_script_venda(dt_inicio)
                 st.success(f"✅ Estratégia: {dados_script['periodo']}")
-                email_final = f"Assunto: Retorno sobre {carro['nome']}\n\n{dados_script['texto']}\n\n✅ INCLUSO: Km Livre, Seguro CDW."
-            else:
-                is_alta = d_inicio.month in [1, 2, 7, 12]
-                p_dia = carro['p_alta'] if is_alta else carro['p_baixa']
-                total = (dias * p_dia) + taxa_entrega
-                email_final = f"Assunto: Confirmação {carro['nome']}\n\n📋 RESUMO:\n• {dias} dias x R$ {p_dia}\n• Taxa: R$ {taxa_entrega}\n💰 TOTAL: R$ {total:.2f}"
+                
+                # No Script de Venda, não mostramos o total do carro indisponível,
+                # mas mostramos o texto de persuasão.
+                email_final = f"""Assunto: Retorno sobre {carro['nome']}
 
-            st.text_area("Copiar E-mail:", email_final, height=400)
+{dados_script['texto']}
+
+---------------------------------------------------
+✅ INCLUSO: Km Livre, Seguro CDW e Taxas."""
+            
+            else:
+                # Carro Normal: MOSTRA O CÁLCULO DETALHADO
+                email_final = f"""Assunto: Confirmação de Reserva: {carro['nome']}
+
+Olá! Segue o orçamento detalhado:
+
+📋 RESUMO FINANCEIRO:
+• Veículo: {carro['nome']}
+• Período: {dias} diárias x R$ {p_dia:.2f}
+• Taxa de Entrega: R$ {taxa_entrega:.2f}
+
+💰 VALOR TOTAL: R$ {total:.2f}
+
+Para confirmar, responda "DE ACORDO"."""
+
+            st.text_area("Copiar E-mail:", email_final, height=450)
 
 else:
-    st.warning("⚠️ Carregando dados da nuvem... (Se demorar, verifique o link)")
+    st.warning("⚠️ Carregando dados...")
